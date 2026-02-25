@@ -119,6 +119,7 @@ import {
   sendSerializedErrorsToClientForHtmlRequest,
   setErrorsRscStreamForHtmlRequest,
 } from './serialized-errors'
+import { Bundler } from '../../lib/bundler'
 
 const MILLISECONDS_IN_NANOSECOND = BigInt(1_000_000)
 
@@ -968,6 +969,7 @@ export default class HotReloaderWebpack implements NextJsHotReloaderInterface {
             const isAppPath = hasAppDir && bundlePath.startsWith('app/')
             const staticInfo = isEntry
               ? await getStaticInfoIncludingLayouts({
+                  dir: this.dir,
                   isInsideAppDir: isAppPath,
                   pageExtensions: this.config.pageExtensions,
                   pageFilePath: entryData.absolutePagePath,
@@ -975,6 +977,9 @@ export default class HotReloaderWebpack implements NextJsHotReloaderInterface {
                   config: this.config,
                   isDev: true,
                   page,
+                  bundler: process.env.NEXT_RSPACK
+                    ? Bundler.Rspack
+                    : Bundler.Webpack,
                 })
               : undefined
 
