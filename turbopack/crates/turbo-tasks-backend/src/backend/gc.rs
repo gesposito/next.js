@@ -35,6 +35,8 @@ enum GcJob {
 /// Observability counters for one [`TurboTasksBackend::gc_collect`] pass.
 #[derive(Default)]
 pub(crate) struct GcStats {
+    /// Total number of gc roots
+    pub gc_roots: usize,
     /// Tasks collected (marked soft-deleted).
     pub collected: usize,
     /// Edges torn down across all collected tasks (children + forward-dependency reverse edges).
@@ -45,6 +47,7 @@ impl GcStats {
     fn merge(mut self, other: Self) -> Self {
         self.collected += other.collected;
         self.edges_deleted += other.edges_deleted;
+        self.gc_roots += other.gc_roots;
         self
     }
 }
@@ -72,8 +75,10 @@ impl TurboTasksBackend {
             |spawner, job, stats| {
                 let task_id = match job {
                     GcJob::ScanShard(index) => {
-                        self.storage
+                        let roots = self
+                            .storage
                             .gc_scan_shard(index, |task_id| spawner.spawn(GcJob::Collect(task_id)));
+                        stats.gc_roots += roots;
                         return ControlFlow::Continue(());
                     }
                     GcJob::Collect(task_id) => task_id,
