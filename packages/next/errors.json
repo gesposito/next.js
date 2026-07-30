@@ -1482,5 +1482,19 @@
   "1481": "Route %s used \\`unstable_navigation()\\`, which requires Cache Components to be enabled. Learn more: https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents",
   "1482": "Route %s used \\`unstable_navigation()\\` inside \\`after()\\` while rendering. The \\`unstable_navigation()\\` function is used to indicate the subsequent code must only run during an actual navigation, but \\`after()\\` executes after the request, so this function is not allowed in this scope. See more info here: https://nextjs.org/docs/app/api-reference/functions/after",
   "1483": "Route %s used \\`unstable_navigation()\\` inside \"use cache: private\". This is not currently supported. Instead, move the \"use cache\" directive to a function that's called below \\`await unstable_navigation()\\`, so that the cached content is deferred to the navigation without caching the stage boundary itself. See more info here: https://nextjs.org/docs/messages/next-request-in-use-cache",
-  "1484": "Route %s used \\`unstable_navigation()\\` inside \"use cache\". This is not currently supported. Instead, move the \"use cache\" directive to a function that's called below \\`await unstable_navigation()\\`, so that the cached content is deferred to the navigation without caching the stage boundary itself. See more info here: https://nextjs.org/docs/messages/next-request-in-use-cache"
+  "1484": "Route %s used \\`unstable_navigation()\\` inside \"use cache\". This is not currently supported. Instead, move the \"use cache\" directive to a function that's called below \\`await unstable_navigation()\\`, so that the cached content is deferred to the navigation without caching the stage boundary itself. See more info here: https://nextjs.org/docs/messages/next-request-in-use-cache",
+  "1485": "Route %s read the variant \\`%s\\` outside of a Server Component. This is not allowed.",
+  "1486": "A variant was defined without an identity. Variants must be declared in a module with the `'use variants'` directive so that the transform can assign one.",
+  "1487": "Route %s read the variant \\`%s\\` inside a cache scope. This is not supported yet. Read the variant outside the cached function and pass the value in as an argument.",
+  "1488": "`variant()` expects a `decide` function as its first argument.",
+  "1489": "The variant \\`%s\\` resolved to %s, which contains characters that cannot be used in a variant value. Variant values may not contain \\`/\\`, \\`&\\`, \\`=\\`, \\`%\\`, \\`+\\`, or whitespace.",
+  "1490": "Variants require the `experimental.variants` option to be enabled in your Next.js config.",
+  "1491": "Route %s read the variant \\`%s\\` inside \\`generateStaticParams\\`. This is not supported, because \\`generateStaticParams\\` is where variant values are enumerated.",
+  "1492": "The variant \\`%s\\` resolved to a %s value. Variants must resolve to a string.",
+  "1493": "The variant identity \\`%s\\` contains characters that cannot be used in a variant identity.",
+  "1494": "Unexpected work unit store type while reading the variant \\`%s\\`.",
+  "1495": "Missing workStore while reading the variant \\`%s\\`.",
+  "1496": "Route %s read the variant \\`%s\\` while prerendering, which is not supported yet.",
+  "1497": "Route %s read the variant \\`%s\\`, but no value was resolved for this request. This usually means the route is not covered by your \\`proxy.ts\\` matcher.",
+  "1498": "the variant \\`%s\\` must not be read within a Client Component. Next.js should be preventing variants from being included in Client Components, but did not in this case."
 }
