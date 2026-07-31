@@ -1505,5 +1505,12 @@
   "1504": "`withVariants()` expects each variant assignment to be a `[variant, value]` tuple.",
   "1505": "Invalid value at index %s returned from generateStaticParams for \"%s\". Expected the first argument to withVariants() to be an object, but received type %s. See more info here: https://nextjs.org/docs/messages/generate-static-params",
   "1506": "%s %s, which contains characters that cannot be used in a variant value. Variant values may not contain \\`/\\`, \\`&\\`, \\`=\\`, \\`%\\`, \\`+\\`, or whitespace.",
-  "1507": "Unexpected prerender store type while reading the variant \\`%s\\`."
+  "1507": "Unexpected prerender store type while reading the variant \\`%s\\`.",
+  "1508": "\\`generateStaticVariants\\` for %s returned a combination that is not an array. Each combination is a list of \\`[variant, value]\\` tuples.",
+  "1509": "A layout of %s exported \\`generateStaticVariants\\` (segment %s). Only a page may declare variant combinations, because the prerendered outputs are per page and a layout would otherwise multiply the outputs of every page beneath it.",
+  "1510": "\\`generateStaticVariants\\` for %s assigned the variant \\`%s\\` more than once in one combination. A variant can only take one value per combination.",
+  "1511": "\\`generateStaticVariants\\` for %s assigned a value to something that is not a variant. Use the value exported from a \\`'use variants'\\` module, for example \\`[theme, 'dark']\\`.",
+  "1512": "Edge runtime is not supported with `generateStaticVariants`.",
+  "1513": "\\`generateStaticVariants\\` for %s returned a combination containing something that is not a \\`[variant, value]\\` tuple.",
+  "1514": "\\`generateStaticVariants\\` for %s did not return an array. Return a list of combinations, each a list of \\`[variant, value]\\` tuples."
 }
