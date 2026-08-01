@@ -1079,6 +1079,7 @@ impl TurboTasksBackend {
                 gc_roots = tracing::field::Empty,
                 collected = tracing::field::Empty,
                 edges_deleted = tracing::field::Empty,
+                aged_out_roots = tracing::field::Empty,
             )
             .entered();
             let gc_phase = self.snapshot_coord.begin_gc();
@@ -1086,6 +1087,7 @@ impl TurboTasksBackend {
             gc_span.record("gc_roots", stats.gc_roots);
             gc_span.record("collected", stats.collected);
             gc_span.record("edges_deleted", stats.edges_deleted);
+            gc_span.record("aged_out_roots", stats.aged_out_roots);
             gc_roots_to_persist = Some(roots);
             gc_phase.into_snapshot()
         } else {
