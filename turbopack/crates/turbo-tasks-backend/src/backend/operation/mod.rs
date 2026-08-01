@@ -54,6 +54,30 @@ enum TaskAccess {
     MustExist,
 }
 
+/// What a task became at the moment a GC-predicate clause changed in its favor — recorded by
+/// [`ExecuteContext::note_gc_candidate`] and acted on by the collector.
+///
+/// The two are mutually exclusive: a task with no persistent parent either has an external anchor
+/// (a root) or does not (garbage).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GcCandidate {
+    /// Parent-less and unanchored — it satisfied
+    /// [`is_gc_collectible`](TaskGuard::is_gc_collectible) and should be collected.
+    Garbage(TaskId),
+    /// Parent-less but still anchored from outside the tracked graph (a pin / transient ref), or
+    /// still holding aggregation edges. It just became a durable root, so it must enter the
+    /// persisted roots map with a fresh timestamp and start aging rather than be collected.
+    Root(TaskId),
+}
+
+impl GcCandidate {
+    pub fn task_id(self) -> TaskId {
+        match self {
+            GcCandidate::Garbage(id) | GcCandidate::Root(id) => id,
+        }
+    }
+}
+
 pub trait ExecuteContext<'e>: Sized {
     type TaskGuardImpl: TaskGuard + 'e;
     fn child_context<'l, 'r>(&'r self) -> impl ChildExecuteContext<'l> + use<'e, 'l, Self>
@@ -218,8 +242,9 @@ pub struct ExecuteContextImpl<'e> {
     turbo_tasks: &'e TurboTasks<TurboTasksBackend>,
     _operation_guard: Option<OperationGuard<'e, AnyOperation>>,
     task_lock_counter: TaskLockCounter,
-    /// GC-only: ids that became GC-collectible during this context's operations.
-    gc_collectible: Option<Vec<TaskId>>,
+    /// GC-only: tasks that became garbage or became durable roots during this context's
+    /// operations. `None` for normal contexts, which makes the recording hook a no-op.
+    gc_candidates: Option<Vec<GcCandidate>>,
 }
 
 impl<'e> ExecuteContextImpl<'e> {
@@ -232,7 +257,7 @@ impl<'e> ExecuteContextImpl<'e> {
             turbo_tasks,
             _operation_guard: Some(backend.start_operation()),
             task_lock_counter: TaskLockCounter::new(),
-            gc_collectible: None,
+            gc_candidates: None,
         }
     }
 
@@ -254,7 +279,7 @@ impl<'e> ExecuteContextImpl<'e> {
             turbo_tasks,
             _operation_guard: None,
             task_lock_counter: TaskLockCounter::new(),
-            gc_collectible: Some(Vec::new()),
+            gc_candidates: Some(Vec::new()),
         }
     }
 
@@ -1170,14 +1195,14 @@ impl<'e> ExecuteContext<'e> for ExecuteContextImpl<'e> {
         self.backend.operation_suspend_point(|| op.clone().into());
     }
 
-    fn note_gc_collectible(&mut self, task_id: TaskId) {
-        if let Some(collectible) = self.gc_collectible.as_mut() {
-            collectible.push(task_id);
+    fn note_gc_candidate(&mut self, candidate: GcCandidate) {
+        if let Some(candidates) = self.gc_candidates.as_mut() {
+            candidates.push(candidate);
         }
     }
 
-    fn take_gc_collectible(&mut self) -> Vec<TaskId> {
-        self.gc_collectible
+    fn take_gc_candidates(&mut self) -> Vec<GcCandidate> {
+        self.gc_candidates
             .as_mut()
             .map(std::mem::take)
             .unwrap_or_default()
@@ -1242,7 +1267,7 @@ impl<'e> ChildExecuteContext<'e> for ChildExecuteContextImpl<'e> {
             turbo_tasks: self.turbo_tasks,
             _operation_guard: None,
             task_lock_counter: TaskLockCounter::new(),
-            gc_collectible: None,
+            gc_candidates: None,
         }
     }
 }

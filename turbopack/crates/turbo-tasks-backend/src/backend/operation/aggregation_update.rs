@@ -30,7 +30,7 @@ use crate::{
     backend::{
         TaskDataCategory,
         operation::{
-            ExecuteContext, Operation, TaskGuard, connect_child::resurrect_deleted,
+            ExecuteContext, GcCandidate, Operation, TaskGuard, connect_child::resurrect_deleted,
             invalidate::make_task_dirty,
         },
         storage_schema::TaskStorageAccessors,
@@ -1459,9 +1459,13 @@ impl AggregationUpdateQueue {
                                 "a transient task should never have a persistent parent_count to \
                                  zero"
                             );
-                            if task.is_gc_collectible() {
-                                ctx.note_gc_collectible(task.id());
-                            }
+                            // Unanchored means garbage; still anchored (a pin / transient ref) or
+                            // still holding aggregation edges means it just became a durable root.
+                            ctx.note_gc_candidate(if task.is_gc_collectible() {
+                                GcCandidate::Garbage(task.id())
+                            } else {
+                                GcCandidate::Root(task.id())
+                            });
                         }
                     });
                 }
@@ -1941,7 +1945,7 @@ impl AggregationUpdateQueue {
                     let followers = get_followers(&follower);
                     // if uppers became empty, it might be collectible, check now.
                     if follower.is_upper_empty() && follower.is_gc_collectible() {
-                        ctx.note_gc_collectible(lost_follower_id);
+                        ctx.note_gc_candidate(GcCandidate::Garbage(lost_follower_id));
                     }
                     drop(follower);
 
@@ -2021,7 +2025,7 @@ impl AggregationUpdateQueue {
                     let upper_ids = get_uppers(&upper);
                     // If followers became empty the task might be collectible, check now.
                     if upper.is_followers_empty() && upper.is_gc_collectible() {
-                        ctx.note_gc_collectible(upper_id);
+                        ctx.note_gc_candidate(GcCandidate::Garbage(upper_id));
                     }
                     drop(upper);
 
@@ -2122,7 +2126,7 @@ impl AggregationUpdateQueue {
                 let data = AggregatedDataUpdate::from_task(&mut follower).invert();
                 let followers = get_followers(&follower);
                 if follower.is_upper_empty() && follower.is_gc_collectible() {
-                    ctx.note_gc_collectible(lost_follower_id);
+                    ctx.note_gc_candidate(GcCandidate::Garbage(lost_follower_id));
                 }
                 drop(follower);
 
@@ -2205,7 +2209,7 @@ impl AggregationUpdateQueue {
                         && upper.get_activeness().is_some_and(|a| a.active_counter > 0);
                     let upper_ids = get_uppers(&upper);
                     if upper.is_followers_empty() && upper.is_gc_collectible() {
-                        ctx.note_gc_collectible(upper_id);
+                        ctx.note_gc_candidate(GcCandidate::Garbage(upper_id));
                     }
                     drop(upper);
 
@@ -2318,7 +2322,7 @@ impl AggregationUpdateQueue {
                     // Losing the last upper edge can satisfy the aggregation-emptiness clauses of
                     // the GC predicate, so re-check it here under the guard we already hold.
                     if follower.is_upper_empty() && follower.is_gc_collectible() {
-                        ctx.note_gc_collectible(lost_follower_id);
+                        ctx.note_gc_candidate(GcCandidate::Garbage(lost_follower_id));
                     }
                     drop(follower);
 
@@ -2402,7 +2406,7 @@ impl AggregationUpdateQueue {
                     && upper.get_activeness().is_some_and(|a| a.active_counter > 0);
                 let upper_ids = get_uppers(&upper);
                 if upper.is_followers_empty() && upper.is_gc_collectible() {
-                    ctx.note_gc_collectible(upper_id);
+                    ctx.note_gc_candidate(GcCandidate::Garbage(upper_id));
                 }
                 drop(upper);
 
