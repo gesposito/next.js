@@ -70,14 +70,6 @@ pub enum GcCandidate {
     Root(TaskId),
 }
 
-impl GcCandidate {
-    pub fn task_id(self) -> TaskId {
-        match self {
-            GcCandidate::Garbage(id) | GcCandidate::Root(id) => id,
-        }
-    }
-}
-
 pub trait ExecuteContext<'e>: Sized {
     type TaskGuardImpl: TaskGuard + 'e;
     fn child_context<'l, 'r>(&'r self) -> impl ChildExecuteContext<'l> + use<'e, 'l, Self>
