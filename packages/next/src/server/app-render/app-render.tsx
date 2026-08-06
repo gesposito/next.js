@@ -137,6 +137,7 @@ import {
 } from './create-transport-tree-from-loader-tree'
 import { handleAction } from './action-handler'
 import { isBailoutToCSRError } from '../../shared/lib/lazy-dynamic/bailout-to-csr'
+import { getReactBrowserBailoutReason } from '../../shared/lib/lazy-dynamic/react-browser-bailout'
 import { warn, error } from '../../build/output/log'
 import {
   appendMutableCookies,
@@ -9694,11 +9695,21 @@ async function prerenderToStream(
 
     // If a bailout made it to this point, it means it wasn't wrapped inside
     // a suspense boundary.
-    const shouldBailoutToCSR = isBailoutToCSRError(err)
-    if (shouldBailoutToCSR) {
+    if (isBailoutToCSRError(err)) {
       const stack = getStackWithoutErrorMessage(err)
       error(
         `${err.reason} should be wrapped in a suspense boundary at page "${pagePath}". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout\n${stack}`
+      )
+
+      throw err
+    }
+
+    // React preserves the reason passed to browser() as the fatal error's cause.
+    const browserBailoutReason = getReactBrowserBailoutReason(err)
+    if (browserBailoutReason !== undefined) {
+      const stack = getStackWithoutErrorMessage(err as Error)
+      error(
+        `${browserBailoutReason} should be wrapped in a suspense boundary at page "${pagePath}". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout\n${stack}`
       )
 
       throw err
