@@ -741,6 +741,9 @@ export async function initialize(opts: {
           handleIndex,
           {
             invokeOutput: matchedOutput.itemPath,
+            ...(matchedOutput.didMatchLocalePrefixedPath
+              ? { didMatchLocalePrefixedPath: true }
+              : undefined),
             ...(matchedOutput.error
               ? {
                   invokeStatus: 500,

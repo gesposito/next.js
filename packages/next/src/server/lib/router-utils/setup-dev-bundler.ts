@@ -1111,6 +1111,13 @@ async function startWatcher(
       opts.fsChecker.setRouteDefinitions('pageFile', pageRouteDefinitions)
       opts.fsChecker.setRouteDefinitions('appFile', appRouteDefinitions)
 
+      const routeKinds = new Map(
+        [...pageRouteDefinitions, ...appRouteDefinitions].map((definition) => [
+          definition.pathname,
+          definition.kind,
+        ])
+      )
+
       // TODO: pass this to fsChecker/next-dev-server?
       serverFields.middleware = middlewareMatchers
         ? {
@@ -1193,6 +1200,9 @@ async function startWatcher(
               routeKeys: regex.routeKeys,
               match: getRouteMatcher(regex),
               page,
+              kind:
+                routeKinds.get(page) ??
+                (isAPIRoute(page) ? RouteKind.PAGES_API : RouteKind.PAGES),
             }
           }
         )
@@ -1222,6 +1232,9 @@ async function startWatcher(
                 : new RegExp(route.dataRouteRegex),
               groups: routeRegex.groups,
             }),
+            kind: isAPIRoute(route.page)
+              ? RouteKind.PAGES_API
+              : RouteKind.PAGES,
           })
         }
         opts.fsChecker.dynamicRoutes.unshift(...dataRoutes)
