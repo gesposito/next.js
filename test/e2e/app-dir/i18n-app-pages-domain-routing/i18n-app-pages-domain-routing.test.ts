@@ -4,6 +4,8 @@ import { load } from 'cheerio'
 describe('i18n-app-pages-domain-routing', () => {
   const { next } = nextTestSetup({
     files: __dirname,
+    // Vercel deployments cannot spoof Host to exercise configured domains.
+    skipDeployment: true,
   })
 
   function fetchFromDomain(pathname: string, host = 'nl.example.local') {
