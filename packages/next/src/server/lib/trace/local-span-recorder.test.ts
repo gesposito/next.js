@@ -4,8 +4,17 @@
 
 import { runInNewContext } from 'node:vm'
 import { setFlagsFromString } from 'node:v8'
-import { SpanStatusCode, trace } from 'next/dist/compiled/@opentelemetry/api'
-import { createLocalSpan, traceLocalSpan } from './local-span-recorder'
+import {
+  SpanStatusCode,
+  trace,
+  type Span,
+} from 'next/dist/compiled/@opentelemetry/api'
+import {
+  createLocalSpan,
+  isLocalRecordingSpan,
+  isOpenTelemetryIsolatedSpan,
+  traceLocalSpan,
+} from './local-span-recorder'
 import {
   resolveRequestInsightsIdentity,
   runWithRequestInsightsIdentity,
@@ -271,6 +280,23 @@ describe('local recording span', () => {
         parentSpanId: detachedRoot.spanId,
       })
     )
+  })
+
+  it('recognizes local spans created by another module evaluation', () => {
+    let isolatedSpan: Span
+
+    jest.isolateModules(() => {
+      const isolatedRecorder =
+        require('./local-span-recorder') as typeof import('./local-span-recorder')
+      isolatedSpan = isolatedRecorder.createLocalSpan({
+        name: 'isolated module span',
+        isolateOpenTelemetry: true,
+      })
+    })
+
+    expect(isLocalRecordingSpan(isolatedSpan!)).toBe(true)
+    expect(isOpenTelemetryIsolatedSpan(isolatedSpan!)).toBe(true)
+    isolatedSpan!.end()
   })
 
   it('uses the request insights identity before the work store exists', () => {
