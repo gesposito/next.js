@@ -154,10 +154,10 @@ pub trait ExecuteContext<'e>: Sized {
         T: Clone + Into<AnyOperation>;
     /// Use to record tasks that become collectible during execution of this context.
     /// Only a GC context accumulates these; a normal operation context discards them.
-    fn note_gc_collectible(&mut self, task_id: TaskId);
+    fn note_gc_candidate(&mut self, candidate: GcCandidate);
     /// Takes the ids recorded by [`Self::note_gc_collectible`] since the last call. Empty outside
     /// a GC context.
-    fn take_gc_collectible(&mut self) -> Vec<TaskId>;
+    fn take_gc_candidates(&mut self) -> Vec<GcCandidate>;
     fn should_track_dependencies(&self) -> bool;
     fn should_track_activeness(&self) -> bool;
     fn turbo_tasks(&self) -> Arc<dyn TurboTasksCallApi>;
