@@ -21,20 +21,11 @@ declare global {
 
 // A Back/Forward press before the router's popstate listener exists moves the
 // browser to a different history entry than the one the document was activated
-// on, and the resulting popstate fires with nobody listening. The activation
-// entry is fixed for the document's lifetime and entry keys are stable across
-// replaceState, so until the listener is installed a key mismatch means a
-// traversal went unobserved.
+// on, and the resulting popstate fires with nobody listening. The inline
+// script records it.
 function hasMissedTraversal(): boolean {
-  if (typeof window.navigation === 'undefined') {
-    return false
-  }
-  const activationEntry = window.navigation.activation?.entry
-  const currentEntry = window.navigation.currentEntry
   return (
-    activationEntry != null &&
-    currentEntry != null &&
-    activationEntry.key !== currentEntry.key &&
+    window.__next_h?.changed === true &&
     // Only entries written by the app router can be restored; on any other
     // entry the traversal is left unhandled, as before.
     window.history.state?.__NA === true
@@ -42,7 +33,6 @@ function hasMissedTraversal(): boolean {
 }
 
 let checkedMissedTraversalBeforeHistoryWrite = false
-let checkedMissedTraversalBeforeReplay = false
 
 export function shouldSkipFirstHistoryWrite(): boolean {
   if (checkedMissedTraversalBeforeHistoryWrite) {
@@ -90,6 +80,8 @@ function copyNextJsInternalHistoryState(data: any) {
 }
 
 export function installHistoryHandlers(): () => void {
+  const missedTraversal = hasMissedTraversal()
+
   // An app may have wrapped these in turn; only remove our own wrappers.
   const pushStateWrapper: EarlyHistoryWrapper<History['pushState']> =
     window.history.pushState
@@ -169,11 +161,8 @@ export function installHistoryHandlers(): () => void {
 
   window.addEventListener('popstate', onPopState)
 
-  if (!checkedMissedTraversalBeforeReplay) {
-    checkedMissedTraversalBeforeReplay = true
-    if (hasMissedTraversal()) {
-      handlePopState(window.history.state)
-    }
+  if (missedTraversal) {
+    handlePopState(window.history.state)
   }
 
   return () => {
