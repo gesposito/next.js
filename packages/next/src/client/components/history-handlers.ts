@@ -19,27 +19,34 @@ declare global {
   }
 }
 
-// A Back/Forward press before the router's popstate listener exists moves the
-// browser to a different history entry than the one the document was activated
-// on, and the resulting popstate fires with nobody listening. The inline
-// script records it.
-function hasMissedTraversal(): boolean {
-  return (
-    window.__next_h?.changed === true &&
-    // Only entries written by the app router can be restored; on any other
-    // entry the traversal is left unhandled, as before.
-    window.history.state?.__NA === true
-  )
+// The URL the server rendered for, so hydration matches the HTML. A fragment
+// change keeps the same page, so it does not count as a change.
+export function getHistoryActivationUrl(): URL {
+  const earlyHistory = window.__next_h
+  if (earlyHistory === undefined) {
+    return new URL(window.location.href)
+  }
+  const activationUrl = new URL(earlyHistory.href)
+  const currentUrl = new URL(window.location.href)
+  activationUrl.hash = currentUrl.hash
+  if (activationUrl.href === currentUrl.href) {
+    earlyHistory.changed = false
+  }
+  return activationUrl
 }
 
-let checkedMissedTraversalBeforeHistoryWrite = false
-
 export function shouldSkipFirstHistoryWrite(): boolean {
-  if (checkedMissedTraversalBeforeHistoryWrite) {
-    return false
+  return window.__next_h?.changed === true
+}
+
+// A router-written entry is restored like a popstate. Any other entry is
+// adopted at its current URL, as the first write used to do.
+function replayEarlyHistoryChange(): void {
+  if (window.history.state?.__NA) {
+    handlePopState(window.history.state)
+  } else {
+    restore(new URL(window.location.href), undefined)
   }
-  checkedMissedTraversalBeforeHistoryWrite = true
-  return hasMissedTraversal()
 }
 
 /**
@@ -80,7 +87,8 @@ function copyNextJsInternalHistoryState(data: any) {
 }
 
 export function installHistoryHandlers(): () => void {
-  const missedTraversal = hasMissedTraversal()
+  const changedBeforeHydration = window.__next_h?.changed === true
+  delete window.__next_h
 
   // An app may have wrapped these in turn; only remove our own wrappers.
   const pushStateWrapper: EarlyHistoryWrapper<History['pushState']> =
@@ -93,7 +101,6 @@ export function installHistoryHandlers(): () => void {
   if (replaceStateWrapper.__original !== undefined) {
     window.history.replaceState = replaceStateWrapper.__original
   }
-  delete window.__next_h
 
   const originalPushState = window.history.pushState.bind(window.history)
   const originalReplaceState = window.history.replaceState.bind(window.history)
@@ -161,8 +168,8 @@ export function installHistoryHandlers(): () => void {
 
   window.addEventListener('popstate', onPopState)
 
-  if (missedTraversal) {
-    handlePopState(window.history.state)
+  if (changedBeforeHydration) {
+    replayEarlyHistoryChange()
   }
 
   return () => {

@@ -128,7 +128,7 @@ describe('back navigation before hydration after reload', () => {
   const searchPath = '/search'
 
   it('reconciles the URL with the rendered content once hydration completes', async () => {
-    const { browser, releaseScripts } = await clickThenReloadStalled(
+    const { browser, page, releaseScripts } = await clickThenReloadStalled(
       homePath,
       'to-post',
       '#post'
@@ -139,6 +139,10 @@ describe('back navigation before hydration after reload', () => {
     await browser.back({ waitUntil: 'commit' })
     expect(new URL(await browser.url()).pathname).toBe(homePath)
 
+    // Hydration must match the server HTML, which is the post page.
+    await page.evaluate(
+      'document.getElementById("server-pathname").__server = true'
+    )
     releaseScripts()
 
     // We traversed back, so once the router is up it must render the home
@@ -148,6 +152,9 @@ describe('back navigation before hydration after reload', () => {
     await retry(async () => {
       expect(await readRouterUrl(browser)).toBe(homePath)
     })
+    expect(
+      await browser.eval('document.getElementById("server-pathname").__server')
+    ).toBe(true)
 
     // History traversal must still work after recovery.
     await browser.forward()
@@ -328,14 +335,12 @@ describe('back navigation before hydration after reload', () => {
       releaseScripts()
 
       await retry(async () => {
-        // The traversal cannot be replayed onto the third-party entry. The
-        // content stays on the reloaded page, like before the fix — and in
-        // particular the router must not reload a page that just loaded.
+        // The router adopts the pushed entry: same content, its URL. It must
+        // not reload a page that just loaded.
         expect(await browser.eval('window.__stayed')).toBe(true)
         expect(new URL(await browser.url()).search).toBe('?tp=1')
         expect(await browser.elementByCss('h1').text()).toBe('Post')
-        // TODO: The router never learns about the third-party entry.
-        expect(await readRouterUrl(browser)).toBe(homePath)
+        expect(await readRouterUrl(browser)).toBe(`${homePath}?tp=1`)
       })
 
       await browser.elementById('to-home').click()

@@ -20,6 +20,7 @@ import {
   createMutableActionQueue,
 } from './components/app-router-instance'
 import AppRouter from './components/app-router'
+import { getHistoryActivationUrl } from './components/history-handlers'
 import type { InitialRSCPayload } from '../shared/lib/app-router-types'
 import { createInitialRouterState } from './components/router-reducer/create-initial-router-state'
 import { MissingSlotContext } from '../shared/lib/app-router-context.shared-runtime'
@@ -381,7 +382,7 @@ export async function hydrate(
       navigatedAt: initialTimestamp,
       initialRSCPayload,
       initialFlightStreamForCache,
-      location: window.location,
+      location: getHistoryActivationUrl(),
     })
   )
 
